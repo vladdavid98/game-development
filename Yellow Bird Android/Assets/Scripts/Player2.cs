@@ -27,7 +27,7 @@ public class Player2 : MonoBehaviour
 
     public int timeFromStartOfTheGame;
     private Animator animator;
-    public static bool dead = false;
+    public bool dead = false;
     private bool didFlap = false;
     private float deathCooldown;
     public float forwardSpeed;
@@ -39,53 +39,35 @@ public class Player2 : MonoBehaviour
     private bool artificialGravity = true;
     private float frame;
     public static bool gameStarted = false;
-    private int toggle;
+
     private Quaternion rotation;
     private Vector3 pos;
     private AudioSource audioS;
     public AudioClip hitClip;
     public AudioClip flapClip;
 
-    //bool dead = false;
     private bool birdAtMenu = false;
 
     private int audioTimesPlayed;
-    private GameObject[] pauseObjects;
-    private GameObject[] gameOverObjects;
-    private GameObject[] scoreObjects;
-    private GameObject[] menuObjects;
-    private GameObject[] almostPlayObjects;
-    private GameObject spawnerObject;
-    private bool canPlaySound;
-    private bool canPlayVibration;
 
+    private bool canPlaySound;
     private int timeToIgnoreInput;
 
-    private int s = 1;
-
     private Vector3 lastPosition;
-    //0.026,0.07,0.0045
 
     private void Start()
     {
-        //gameIsReadyToPlayAfterPauseIsOver = false;
-        //hideAlmostPlayObject ();
-        //EnableSound();
+        bird0.player2alive = true;
         k = 0;
         lastPosition = bird0.transform.position;
         lastPosition.x -= 0.5f;
         x = 0;
         numberOfButtonPresses = 0;
-        //        menuGametypeFlapSpeed.x -= forwardSpeed;
+
         menuGametypeFlapSpeed = bird0.menuGametypeFlapSpeed;
 
         timeFromStartOfTheGame = 0;
-        spawnerObject = GameObject.FindGameObjectWithTag("Spawner");
-        pauseObjects = GameObject.FindGameObjectsWithTag("ShowOnPause");
-        gameOverObjects = GameObject.FindGameObjectsWithTag("ShowOnGameOver");
-        scoreObjects = GameObject.FindGameObjectsWithTag("ScoreObject");
-        menuObjects = GameObject.FindGameObjectsWithTag("ShowOnMenu");
-        almostPlayObjects = GameObject.FindGameObjectsWithTag("ShowOnAlmostPlay");
+
         gameIsInMenuMode = true;
         if (PlayerPrefs.GetInt("soundTypeEnabled") == 1)
         {
@@ -94,47 +76,38 @@ public class Player2 : MonoBehaviour
         else
             canPlaySound = false;
 
-        if (PlayerPrefs.GetInt("vibrationTypeEnabled") == 1)
-        {
-            canPlayVibration = true;
-        }
-        else
-            canPlayVibration = false;
-
         audioTimesPlayed = 0;
         audioS = GetComponent<AudioSource>();
         audioS.clip = flapClip;
 
-        toggle = 1;
-        if (PlayerPrefs.GetInt("flapTypeToTheRight") == 1 && Application.loadedLevel == 0)
-        {
-            toggle = 1;
-            rotation.Set(0, 0, 0, 0);
-            pos = this.transform.localPosition;
-            pos.x = -0.5f;
-            this.transform.localPosition = pos;
-        }
-        else if (PlayerPrefs.GetInt("flapTypeToTheLeft") == 1 && Application.loadedLevel == 0)
-        {
-            toggle = -1;
-            rotation.Set(0, 180, 0, 0);
-            pos = this.transform.localPosition;
-            pos.x = 0.8f;
-            this.transform.localPosition = pos;
-        }
-
-        forwardSpeed *= toggle;
+        rotation.Set(0, 0, 0, 0);
+        pos = this.transform.localPosition;
+        pos.x = -0.5f;
+        this.transform.localPosition = pos;
 
         this.transform.localRotation = rotation;
 
         rb = GetComponent<Rigidbody2D>();
         InitialiseAnimator();
         velocity.x = bird0.forwardSpeed;
+
         frame = 3f;
         gameStarted = false;
         dead = false;
 
         Application.targetFrameRate = 60;
+
+        UpdatePosX(bird0);
+    }
+
+    private void UpdatePosX(BirdMovement bird0)
+    {
+        if (!bird0.dead)
+            transform.position = new Vector3(bird0.transform.position.x, transform.position.y, transform.position.z);
+        else
+        {
+            transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+        }
     }
 
     private bool ClickedOrPressed()
@@ -147,6 +120,8 @@ public class Player2 : MonoBehaviour
 
     private void Update()
     {
+        if (!dead)
+            UpdatePosX(bird0);
         gameIsInAlmostPlayMode = bird0.gameIsInAlmostPlayMode;
         gameIsInDeathMode = bird0.gameIsInDeathMode;
         gameIsInGameOverMode = bird0.gameIsInGameOverMode;
@@ -169,8 +144,6 @@ public class Player2 : MonoBehaviour
         if ((gameIsInMenuMode || gameIsInAlmostPlayMode) && bird0.firstFlap == false)
         {
             CheckIfFlapped();
-            menuGametypeFlapSpeed.x = bird0.menuGametypeFlapSpeed.x;
-            transform.position += menuGametypeFlapSpeed;
         }
 
         timeToIgnoreInput = TimerManager.timeToIgnoreInput;
@@ -213,6 +186,9 @@ public class Player2 : MonoBehaviour
             animator.SetTrigger("Death");
 
             dead = true;
+
+            if (bird0.dead) bird0.MakeGameBeInDeathMode();
+
             deathCooldown = 0.4f;
 
             Die();
@@ -226,36 +202,22 @@ public class Player2 : MonoBehaviour
                 audioS.Play();
             }
 
-            if (PlayerPrefs.GetInt("vibrationTypeEnabled") == 1)
-            {
-                canPlayVibration = true;
-            }
-            else
-                canPlayVibration = false;
-
-            if (canPlayVibration)
-            {
-                //Handheld.Vibrate();
-                //////////////////////////////////////////////////////////////////////////////
-            }
-
             audioTimesPlayed++;
         }
     }
 
     private void SetVelocity()
     {
-        if (artificialGravity)
-        {
-            velocity.x = bird0.forwardSpeed;
-            velocity.y -= bird0.gravity;
-        }
+        if (!artificialGravity) return;
+        velocity.x = 0.026f;
+        velocity.y -= 0.0045f;
     }
 
     private void CheckIfDead()
     {
         if (dead)
         {
+            bird0.player2alive = false;
             deathCooldown -= Time.deltaTime;
             if (bird0.gameCanRestart && deathCooldown <= 0 && ClickedOrPressed() &&
                 !EventSystem.current.IsPointerOverGameObject() && countdownFromTap == 0 && tapPlace == 1)
@@ -294,14 +256,7 @@ public class Player2 : MonoBehaviour
         {
             float angle = Mathf.Lerp(45, -75, frame / 7f);
 
-            if (toggle == 1)
-            {
-                transform.rotation = Quaternion.Euler(0, 0, angle);
-            }
-            else if (toggle == -1)
-            {
-                transform.rotation = Quaternion.Euler(0, 180, angle);
-            }
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
     }
 
@@ -318,8 +273,6 @@ public class Player2 : MonoBehaviour
             if (canPlaySound && Application.loadedLevel == 0)
                 audioS.Play();
         }
-
-        velocity.x = bird0.velocity.x;
         transform.position += velocity;
     }
 
@@ -331,7 +284,7 @@ public class Player2 : MonoBehaviour
         }
     }
 
-    public void InitialiseSoundAndVibration()
+    public void InitialiseSound()
     {
         if (PlayerPrefs.GetInt("soundTypeEnabled") == 1)
         {
@@ -339,13 +292,6 @@ public class Player2 : MonoBehaviour
         }
         else
             canPlaySound = false;
-
-        if (PlayerPrefs.GetInt("vibrationTypeEnabled") == 1)
-        {
-            canPlayVibration = true;
-        }
-        else
-            canPlayVibration = false;
     }
 
     public void EnableSound()
@@ -358,7 +304,7 @@ public class Player2 : MonoBehaviour
             //            GameObject newActor = Instantiate(musicPrefab) as GameObject;
         }
 
-        InitialiseSoundAndVibration();
+        InitialiseSound();
         PlayerPrefs.Save();
     }
 }

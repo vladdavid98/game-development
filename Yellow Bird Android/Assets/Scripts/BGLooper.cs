@@ -3,41 +3,26 @@ using System.Collections;
 
 public class BGLooper : MonoBehaviour
 {
+    private int numBGPanels = 6;
+    private float pipeMax = 2.5f;
+    private float pipeMin = 0.25f;
 
+    private void Start()
+    {
+    }
 
-	int numBGPanels = 6;
-	float pipeMax = 2.5f;
-	float pipeMin = 0.25f;
-	int toggle;
+    private void OnTriggerEnter2D(Collider2D collider)
+    {
+        float widthOfBgObject = collider.bounds.size.x;
+        Vector3 pos = collider.transform.position;
 
-	void Start ()
-	{
-		toggle = 1;
-		if (PlayerPrefs.GetInt ("flapTypeToTheRight") == 1 && Application.loadedLevel == 2) {
-			toggle = 1;
-		} else if (PlayerPrefs.GetInt ("flapTypeToTheLeft") == 1 && Application.loadedLevel == 2) {
-			toggle = -1;
-		}
-	}
+        pos.x += widthOfBgObject * numBGPanels;
 
+        if (collider.tag == "Pipe")
+        {
+            pos.y = Random.Range(pipeMin, pipeMax);
+        }
 
-	void OnTriggerEnter2D (Collider2D collider)
-	{
-
-		float widthOfBGObject = ((BoxCollider2D)collider).size.x;
-
-		Vector3 pos = collider.transform.position;
-		if (toggle == 1) {
-			pos.x += widthOfBGObject * numBGPanels * toggle;
-		} else if (toggle == -1) {
-			pos.x += widthOfBGObject * numBGPanels * toggle;
-		}
-
-		if (collider.tag == "Pipe") {
-			pos.y = Random.Range (pipeMin, pipeMax);
-		}
-
-
-		collider.transform.position = pos;
-	}
+        collider.transform.position = pos;
+    }
 }

@@ -3,16 +3,22 @@ using System.Collections;
 
 public class CameraTracksPlayer : MonoBehaviour
 {
-    private Transform player;
+    private Transform playerTransform;
     private float offsetX;
-    public BirdMovement _Player;
+    public BirdMovement _Player1;
+    public Player2 _Player2;
     private bool dead;
+
+    private GameObject player_go;
+    private GameObject player_go_2;
 
     // Use this for initialization
     private void Start()
     {
+        player_go = GameObject.FindGameObjectWithTag("Player");
+        player_go_2 = GameObject.FindGameObjectWithTag("Player2");
         dead = false;
-        GameObject player_go = GameObject.FindGameObjectWithTag("Player");
+
         if (player_go == null)
         {
             return;
@@ -24,20 +30,25 @@ public class CameraTracksPlayer : MonoBehaviour
             transform.position = pos;
         }
 
-        player = player_go.transform;
+        playerTransform = player_go.transform;
 
-        offsetX = transform.position.x - player.position.x;
+        offsetX = transform.position.x - playerTransform.position.x;
     }
 
     // Update is called once per frame
     private void Update()
     {
-        if (_Player.gameIsInDeathMode)
+        if (_Player1.dead && !_Player2.dead)
+        {
+            playerTransform = player_go_2.transform;
+        }
+
+        if (_Player1.gameIsInDeathMode)
             dead = true;
-        if (player != null && !dead)
+        if (playerTransform != null && !dead)
         {
             Vector3 pos = transform.position;
-            pos.x = player.position.x + offsetX;
+            pos.x = playerTransform.position.x + offsetX;
             transform.position = pos;
         }
     }

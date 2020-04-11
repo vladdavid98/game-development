@@ -1,9 +1,12 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using UnityEngine.EventSystems;
 
 public class BirdMovement : MonoBehaviour
 {
+    public bool player2alive = true;
+
     public int birdNumber;
 
     public bool firstFlap;
@@ -16,8 +19,6 @@ public class BirdMovement : MonoBehaviour
     private int x;
     private int k;
 
-    //public bool gameIsReadyToPlayAfterPauseIsOver;
-    //public int pauseDelayInDots;
     public int tapPlace;
 
     public int countdownFromTap;
@@ -28,7 +29,6 @@ public class BirdMovement : MonoBehaviour
     public bool gameIsInPausedMode;
     public bool gameIsInDeathMode;
     public BGSpawner _BGSpawner;
-    public ButtonShareScript _ButtonShareScript;
     public Touch touch;
     public Vector2 mousePos;
 
@@ -51,7 +51,7 @@ public class BirdMovement : MonoBehaviour
 
     public int timeFromStartOfTheGame;
     private Animator animator;
-    public static bool dead = false;
+    public bool dead = false;
     private bool didFlap = false;
     private float deathCooldown;
     public float forwardSpeed;
@@ -63,7 +63,6 @@ public class BirdMovement : MonoBehaviour
     private bool artificialGravity = true;
     private float frame;
     public static bool gameStarted = false;
-    private int toggle;
     private Quaternion rotation;
     private Vector3 pos;
     private AudioSource audioS;
@@ -80,26 +79,23 @@ public class BirdMovement : MonoBehaviour
     private GameObject[] menuObjects;
     private GameObject[] almostPlayObjects;
     private GameObject spawnerObject;
+
     private bool canPlaySound;
-    private bool canPlayVibration;
 
     private int timeToIgnoreInput;
 
     private int s = 1;
 
-    private Vector3 lastPosition;
     //0.026,0.07,0.0045
 
     private void Start()
     {
-        //gameIsReadyToPlayAfterPauseIsOver = false;
         gameCanRestart = true;
-        //hideAlmostPlayObject ();
-        //EnableSound();
+        FindObjects();
+
         k = 0;
         alphaOptionsBeforeFade = 1.0f;
         alphaPlayBeforeFade = 1.0f;
-        lastPosition = transform.position;
         x = 0;
         numberOfButtonPresses = 0;
         menuGametypeFlapSpeed.x -= forwardSpeed;
@@ -107,12 +103,7 @@ public class BirdMovement : MonoBehaviour
         _GameOptions.FlapTypeToTheRight();
         timeFromStartOfTheGame = 0;
         firstFlap = false;
-        spawnerObject = GameObject.FindGameObjectWithTag("Spawner");
-        pauseObjects = GameObject.FindGameObjectsWithTag("ShowOnPause");
-        gameOverObjects = GameObject.FindGameObjectsWithTag("ShowOnGameOver");
-        scoreObjects = GameObject.FindGameObjectsWithTag("ScoreObject");
-        menuObjects = GameObject.FindGameObjectsWithTag("ShowOnMenu");
-        almostPlayObjects = GameObject.FindGameObjectsWithTag("ShowOnAlmostPlay");
+
         gameIsInMenuMode = true;
         if (PlayerPrefs.GetInt("soundTypeEnabled") == 1)
         {
@@ -121,36 +112,17 @@ public class BirdMovement : MonoBehaviour
         else
             canPlaySound = false;
 
-        if (PlayerPrefs.GetInt("vibrationTypeEnabled") == 1)
-        {
-            canPlayVibration = true;
-        }
-        else
-            canPlayVibration = false;
-
         audioTimesPlayed = 0;
         audioS = GetComponent<AudioSource>();
         audioS.clip = flapClip;
 
-        toggle = 1;
-        if (PlayerPrefs.GetInt("flapTypeToTheRight") == 1 && Application.loadedLevel == 0)
+        if (Application.loadedLevel == 0)
         {
-            toggle = 1;
             rotation.Set(0, 0, 0, 0);
             pos = this.transform.localPosition;
             pos.x = 0f;
             this.transform.localPosition = pos;
         }
-        else if (PlayerPrefs.GetInt("flapTypeToTheLeft") == 1 && Application.loadedLevel == 0)
-        {
-            toggle = -1;
-            rotation.Set(0, 180, 0, 0);
-            pos = this.transform.localPosition;
-            pos.x = 0.8f;
-            this.transform.localPosition = pos;
-        }
-
-        forwardSpeed *= toggle;
 
         this.transform.localRotation = rotation;
 
@@ -191,11 +163,6 @@ public class BirdMovement : MonoBehaviour
         MoveSky();
         tapPlace = 2;
 
-        //        if (Input.GetMouseButtonDown(0))
-        //        {
-        //            mousePos = Input.mousePosition;
-        //        }
-
         if (ClickedOrPressed())
         {
             mousePos = Input.mousePosition;
@@ -229,8 +196,6 @@ public class BirdMovement : MonoBehaviour
                 _BGSpawner.InitialisePipes();
             }
         }
-
-        //Debug.Log ("numberofbuttonpresses: " + numberOfButtonPresses);
         if (timeFromStartOfTheGame < 1000)
         {
             timeFromStartOfTheGame++;
@@ -268,7 +233,7 @@ public class BirdMovement : MonoBehaviour
             timeToIgnoreInput -= 1;
         }
 
-        if (gameStarted && !dead && gameIsInPlayMode)
+        if (gameStarted && gameIsInPlayMode && !dead)
         {
             frame += 0.15f;
             if (countdownFromTap == 0)
@@ -280,7 +245,7 @@ public class BirdMovement : MonoBehaviour
             CheckIfFlapped();
             SetAngle();
         }
-        else if (dead && countdownFromTap == 0)
+        else if (dead && countdownFromTap == 0 && !player2alive)
         {
             CheckIfDead();
             Die();
@@ -298,22 +263,37 @@ public class BirdMovement : MonoBehaviour
         }
     }
 
+    private void FindObjects()
+    {
+        spawnerObject = GameObject.FindGameObjectWithTag("Spawner");
+        pauseObjects = GameObject.FindGameObjectsWithTag("ShowOnPause");
+        gameOverObjects = GameObject.FindGameObjectsWithTag("ShowOnGameOver");
+        scoreObjects = GameObject.FindGameObjectsWithTag("ScoreObject");
+        menuObjects = GameObject.FindGameObjectsWithTag("ShowOnMenu");
+        almostPlayObjects = GameObject.FindGameObjectsWithTag("ShowOnAlmostPlay");
+    }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (birdAtMenu == false)
         {
             animator.SetTrigger("Death");
-            gameWasInDeathModeBeforePausing = true;
-            gameWasInAlmostPlayModeBeforePausing = false;
-            gameWasInPlayModeBeforePausing = false;
             dead = true;
-            deathCooldown = 0.4f;
-            if (!gameIsInDeathMode)
-            {
-                MakeGameBeInDeathMode();
-            }
 
-            Die();
+            if (!player2alive)
+            {
+                gameWasInDeathModeBeforePausing = true;
+                gameWasInAlmostPlayModeBeforePausing = false;
+                gameWasInPlayModeBeforePausing = false;
+
+                deathCooldown = 0.4f;
+                if (!gameIsInDeathMode)
+                {
+                    MakeGameBeInDeathMode();
+                }
+
+                Die();
+            }
         }
 
         if (audioTimesPlayed <= 2)
@@ -324,30 +304,15 @@ public class BirdMovement : MonoBehaviour
                 audioS.Play();
             }
 
-            if (PlayerPrefs.GetInt("vibrationTypeEnabled") == 1)
-            {
-                canPlayVibration = true;
-            }
-            else
-                canPlayVibration = false;
-
-            if (canPlayVibration)
-            {
-                //Handheld.Vibrate();
-                //////////////////////////////////////////////////////////////////////////////
-            }
-
             audioTimesPlayed++;
         }
     }
 
     private void SetVelocity()
     {
-        if (artificialGravity)
-        {
-            velocity.x = forwardSpeed;
-            velocity.y -= gravity;
-        }
+        if (!artificialGravity) return;
+        velocity.x = forwardSpeed;
+        velocity.y -= gravity;
     }
 
     private void CheckIfDead()
@@ -361,13 +326,11 @@ public class BirdMovement : MonoBehaviour
             {
                 countdownFromTap = 6;
                 audioTimesPlayed = 0;
-                //MakeGameBeInMenuMode ();
                 PlayerPrefs.Save();
                 _GameOptions.GameTypeTwo();
                 Application.LoadLevel("SceneGame");
                 MakeGameBeInMenuMode();
                 _Score.SetScoreValue(0);
-                //MakeGameBeInMenuMode ();
             }
         }
         else if (ClickedOrPressed() && countdownFromTap == 0 && !EventSystem.current.IsPointerOverGameObject())
@@ -389,7 +352,6 @@ public class BirdMovement : MonoBehaviour
             {
                 _PanelNotifications.SlideInPanelNotificationsForcefully(
                     "Nice, you set a new personal record" + "\n" + "New High Score: " + _Score.ScoreValue(), 20);
-                _ButtonShareScript.MakeButtonVisibleAndInteractable();
             }
             else if (_Score.ScoreValue() < PlayerPrefs.GetInt("highScore", 0))
             {
@@ -406,18 +368,10 @@ public class BirdMovement : MonoBehaviour
         }
 
         k = 1;
-
-        //artificialGravity = false;
-        //velocity.x = 0;
-        //velocity.y = 0;
-
-        //forwardSpeed = 0;
         rb.gravityScale = 1;
 
         rb.drag = 2f;
         rb.angularDrag = 2f;
-        //if (transform.localPosition.y <= 1)
-        //gravity = 0;
     }
 
     private void SetAngle()
@@ -426,20 +380,13 @@ public class BirdMovement : MonoBehaviour
         {
             float angle = Mathf.Lerp(45, -75, frame / 7f);
 
-            if (toggle == 1)
-            {
-                transform.rotation = Quaternion.Euler(0, 0, angle);
-            }
-            else if (toggle == -1)
-            {
-                transform.rotation = Quaternion.Euler(0, 180, angle);
-            }
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
     }
 
     private void CheckIfFlapped()
     {
-        if (tapPlace == 1 && didFlap == true && transform.position.y < upperLimit && artificialGravity && dead == false)
+        if (tapPlace == 1 && didFlap && transform.position.y < upperLimit && artificialGravity && !dead)
         {
             didFlap = false;
             firstFlap = true;
@@ -462,7 +409,7 @@ public class BirdMovement : MonoBehaviour
         }
     }
 
-    public void InitialiseSoundAndVibration()
+    public void InitialiseSound()
     {
         if (PlayerPrefs.GetInt("soundTypeEnabled") == 1)
         {
@@ -470,13 +417,6 @@ public class BirdMovement : MonoBehaviour
         }
         else
             canPlaySound = false;
-
-        if (PlayerPrefs.GetInt("vibrationTypeEnabled") == 1)
-        {
-            canPlayVibration = true;
-        }
-        else
-            canPlayVibration = false;
     }
 
     public IEnumerator StartGame()
@@ -493,9 +433,7 @@ public class BirdMovement : MonoBehaviour
             _FadingToBlack.BeginFade(1);
             yield return new WaitForSeconds(0.65f);
             x++;
-            //Debug.Log ("game started");
             _FadeOutScriptTapTapImage.FadeInObject(1.0f, 1.0f);
-            //showAlmostPlayObject ();
             if (x == 1)
             {
                 _Camera.MoveCameraInPlayPosition();
@@ -504,22 +442,8 @@ public class BirdMovement : MonoBehaviour
             _FadingToBlack.BeginFade(-1);
             yield return new WaitForSeconds(0.2f);
 
-            //menuGametypeFlapSpeed.x -= forwardSpeed;
-
             numberOfButtonPresses++;
             MakeGameBeInAlmostPlayMode();
-
-            //if(_Score.score==1)
-            //if(_Score.ScoreValue==1)showScoreObject ();
-            //hideMenuObject ();
-            //_PanelMenu.SlideOutPanelMenu();
-
-            //_FadeOutScriptPlayButton.FadeOutAndMakeNonInteractable (0.0f, 1.0f);
-            //alphaPlayBeforeFade = 0.0f;
-            //_FadeOutScriptOptions.FadeOutObject (0.33f, 1.0f);
-            //alphaOptionsBeforeFade = 0.33f;
-
-            //BGSpawner.InitialisePipes ();
 
             yield return null;
         }
@@ -534,33 +458,25 @@ public class BirdMovement : MonoBehaviour
     {
         PlayerPrefs.SetInt("soundTypeEnabled", 1);
         PlayerPrefs.SetInt("soundTypeDisabled", 0);
-        //Debug.Log("Sound type set to enabled");
         GameObject musicGo = GameObject.FindGameObjectWithTag("Music");
         if (musicGo == null)
         {
-            //Debug.Log("Couldn't find an object with tag music!");
             GameObject newActor = Instantiate(musicPrefab) as GameObject;
         }
 
-        InitialiseSoundAndVibration();
+        InitialiseSound();
         PlayerPrefs.Save();
     }
 
     public IEnumerator StartGameForcefully()
     {
-        //hideMenuObject ();
         MakeGameBeInAlmostPlayMode();
         _FadeOutScriptPlayButton.FadeOutAndMakeNonInteractable(0.0f, 0.1f);
         alphaPlayBeforeFade = 0.0f;
-        //_FadeOutScriptOptions.FadeOutObject (0.33f, 1.0f);
         alphaOptionsBeforeFade = 0.33f;
-        //yield return new WaitForSeconds (0.3f);
         _FadingToBlack.BeginFade(1);
-        //yield return new WaitForSeconds (0.65f);
         yield return new WaitForSeconds(0.3f);
         x++;
-        //Debug.Log ("game started");
-        //showAlmostPlayObject ();
         _FadeOutScriptTapTapImage.FadeInObject(1.0f, 1.0f);
         if (x == 1)
         {
@@ -572,19 +488,7 @@ public class BirdMovement : MonoBehaviour
 
         numberOfButtonPresses++;
         MakeGameBeInAlmostPlayMode();
-
-        //if(_Score.score==1)
-        //if(_Score.ScoreValue==1)showScoreObject ();
-        //hideMenuObject ();
-        //_PanelMenu.SlideOutPanelMenu();
-
-        //_FadeOutScriptPlayButton.FadeOutAndMakeNonInteractable (0.0f, 1.0f);
-        //alphaPlayBeforeFade = 0.0f;
         _FadeOutScriptOptions.FadeInObject(0.33f, 1.0f);
-        //alphaOptionsBeforeFade = 0.33f;
-
-        //BGSpawner.InitialisePipes ();
-
         yield return null;
     }
 
@@ -733,24 +637,6 @@ public class BirdMovement : MonoBehaviour
             g.SetActive(false);
         }
     }
-
-    /*public void MoveSky ()
-	{
-		GameObject[] skies = GameObject.FindGameObjectsWithTag ("Sky");
-		if (gameIsInMenuMode || gameIsInAlmostPlayMode) {
-			foreach (GameObject sky in skies) {
-				Vector3 pos = sky.transform.position;
-				pos.x += 0.01f;
-				sky.transform.position = pos;
-			}
-		} else if (gameIsInPlayMode) {
-			foreach (GameObject sky in skies) {
-				Vector3 pos = sky.transform.position;
-				pos.x += 0.02f;
-				sky.transform.position = pos;
-			}
-		}
-	}*/
 
     public void MoveSky()
     {
