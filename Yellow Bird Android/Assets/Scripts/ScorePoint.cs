@@ -37,7 +37,7 @@ public class ScorePoint : MonoBehaviour {
 
 	void OnTriggerEnter2D(Collider2D collider)
 	{
-		if (collider.tag == "Player" && isActive) {
+		if ((collider.tag == "Player" || collider.tag == "Player2") && isActive) {
 			Score.Increment ();
 			//gameObject.SetActive (false);
 			isActive = false;

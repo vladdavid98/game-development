@@ -30,7 +30,7 @@ public class Score : MonoBehaviour {
 		PlayerPrefs.Save ();
 	}
 
-	static public void Increment () {
+	public static void Increment () {
 
 		score++;
 		//Debug.Log (score);
@@ -47,10 +47,10 @@ public class Score : MonoBehaviour {
 	{
 		score = x;
 	}
-	public void IncrementAgain()
-	{
-		score++;
-	}
+//	public void IncrementAgain()
+//	{
+//		score++;
+//	}
 	public void SetHighScoreToNull()
 	{
 		highScore = 0;

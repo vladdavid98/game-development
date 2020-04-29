@@ -5,7 +5,7 @@ public class GameOptions : MonoBehaviour
 {
     public GameObject musicPrefab;
     public BirdMovement _BirdMovement;
-    public Score _Score;
+//    public Score _Score;
     public PanelNotificationsScript _PanelNotifications;
     public ButtonAreYouSureScript _ButtonAreYouSureScript;
     private int type;

@@ -8,6 +8,8 @@ public class Player2 : MonoBehaviour
 
     public BirdMovement bird0;
 
+    public Score _Score;
+
     private int x;
     private int k;
 
@@ -98,6 +100,8 @@ public class Player2 : MonoBehaviour
         Application.targetFrameRate = 60;
 
         UpdatePosX(bird0);
+
+        _Score = bird0._Score;
     }
 
     private void UpdatePosX(BirdMovement bird0)
